@@ -122,7 +122,7 @@ def handle_err_and_quit(error, code, message, browser):
     try_screenshot(code, message, browser)
     logger.debug(code + " - " + type(error).__name__ + ": " + message)
     logger.error(code + " - " + traceback.format_exc())
-    play_song("QUIT", final_step_loop, winsound.SND_LOOP)
+    play_song("999X", error_loop, winsound.SND_LOOP)
     close_and_kill(browser)
 
 
