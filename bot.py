@@ -122,6 +122,7 @@ def handle_err_and_quit(error, code, message, browser):
     try_screenshot(code, message, browser)
     logger.debug(code + " - " + type(error).__name__ + ": " + message)
     logger.error(code + " - " + traceback.format_exc())
+    play_song("QUIT", final_step_loop, winsound.SND_LOOP)
     close_and_kill(browser)
 
 
@@ -428,10 +429,10 @@ card_holder_name = "Mr Bob Banton"
 security_code = "644"
 payment_address_same = True
 should_wait_on_confirm_page = True
-captcha_sound_loop = "captcha_sound_loop.wav"
-available_booking_sound = "available_booking_sound.wav"
-final_step_loop = "final_step_loop.wav"
-
+captcha_sound_loop = "captcha_sound_loop"
+available_booking_sound = "available_booking_sound"
+final_step_loop = "final_step_loop"
+error_loop = "error_loop"
 
 options = uc.ChromeOptions()
 # options.add_argument("--headless")
@@ -443,8 +444,8 @@ options.add_argument("--incognito")
 with Fragile(Chrome(options=options, version_main=111)) as driver:
     main_thread = threading.current_thread()
 
-    delay_range_1 = 6
-    delay_range_2 = 9
+    delay_range_1 = 12
+    delay_range_2 = 18
     retries = 3
     execute_with_retry(retries, try_get_url, target_url, "0.00", driver)
 
