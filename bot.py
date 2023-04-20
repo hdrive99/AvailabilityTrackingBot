@@ -2,6 +2,7 @@ from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+import json
 import winsound
 import undetected_chromedriver as uc
 import random
@@ -362,8 +363,11 @@ def try_select_dropdown_text_else_quit(name, element, text, code, browser):
         raise RetryOnException(exc, code + "b", "Failed to select '" + text + "' in '" + name + "' dropdown", browser)
 
 
-def get_random_delay(time_range_1, time_range_2):
-    return random.randint(time_range_1, time_range_2)
+def get_random_delay_or_median(time_range_1, time_range_2):
+    if type(time_range_1) == int and type(time_range_2) == int:
+        return random.randint(time_range_1, time_range_2)
+    else:
+        return (time_range_1 + time_range_2) / 2
 
 
 def stop_song(code):
@@ -420,37 +424,45 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-target_url = "https://driverpracticaltest.dvsa.gov.uk/application"
-licence_no = "MORGA657054SM9IJ"
-test_date = "01/05/23"
-post_code = "BT29"
-test_centre_names = ["Girvan", "Newton Stewart", "Stranraer"]
-user_title = "Mr"
-first_names = "Bob"
-surname = "Banton"
-address_line_1 = "12 Cleveland Road"
-town = "London"
-post_code_full = "SW13 0AA"
-email = "abcdefg@hijk.com"
-contact_number = "07874928592"
-card_number = "4485324135825867"
-expiry_month = "06"
-expiry_year = "23"
-card_holder_name = "Mr Bob Banton"
-security_code = "644"
-payment_address_same = True
-should_wait_on_confirm_page = True
-captcha_sound_loop = "captcha_sound_loop"
-available_booking_sound = "available_booking_sound"
-final_step_loop = "final_step_loop"
-error_loop = "error_loop"
-delay_range_1 = 12
-delay_range_2 = 18
-search_delay_range_1 = 12
-search_delay_range_2 = 18
-retries = 3
-is_incognito = False
-max_repeat_captcha_checks = -1
+if len(sys.argv) == 0:
+    config_file_name = "default.json"
+else:
+    config_file_name = sys.argv[1]
+
+with open("configs/" + config_file_name, "r") as f:
+    data = json.load(f)
+
+target_url = data["target_url"]
+licence_no = data["licence_no"]
+test_date = data["test_date"]
+post_code = data["post_code"]
+test_centre_names = data["test_centre_names"]
+user_title = data["user_title"]
+first_names = data["first_names"]
+surname = data["surname"]
+address_line_1 = data["address_line_1"]
+town = data["town"]
+post_code_full = data["post_code_full"]
+email = data["email"]
+contact_number = data["contact_number"]
+card_number = data["card_number"]
+expiry_month = data["expiry_month"]
+expiry_year = data["expiry_year"]
+card_holder_name = data["card_holder_name"]
+security_code = data["security_code"]
+payment_address_same = data["payment_address_same"]
+should_wait_on_confirm_page = data["should_wait_on_confirm_page"]
+captcha_sound_loop = data["captcha_sound_loop"]
+available_booking_sound = data["available_booking_sound"]
+final_step_loop = data["final_step_loop"]
+error_loop = data["error_loop"]
+delay_range_1 = data["delay_range_1"]
+delay_range_2 = data["delay_range_2"]
+search_delay_range_1 = data["search_delay_range_1"]
+search_delay_range_2 = data["search_delay_range_2"]
+retries = data["retries"]
+is_incognito = data["is_incognito"]
+max_repeat_captcha_checks = data["max_repeat_captcha_checks"]
 # Check error-content captcha & repeats this check for "max_repeat_captcha_checks" times, negative for indefinite checks
 
 options = uc.ChromeOptions()
@@ -471,40 +483,40 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     kill_thread = False
     watcher = threading.Thread(target=pause_if_captcha_page_watcher, args=(driver,))
     watcher.start()
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))  # Wait for sub-thread to check page
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))  # Wait for sub-thread to check page
 
     execute_with_retry(retries, quit_if_title_mismatch, "Type of test", "1.10", "1.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_one_btn = execute_with_retry(retries, get_el_by_attribute_else_quit, "testTypeCar", "1.20", By.NAME, driver)
 
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_one_btn, "1.21", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_one_btn, "1.22", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 2 Page
     set_captcha_codes("2.00", "2.01", "2.02", "2.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Licence details", "2.10", "2.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_two_licence_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "driverLicenceNumber", "2.20", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Licence Input", step_two_licence_form, "2.21", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Licence Input", step_two_licence_form, licence_no, "2.22", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_two_special_needs_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "special-needs-none", "2.30", By.ID, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Special Needs Radio Btn", step_two_special_needs_form, "2.31", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_two_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "drivingLicenceSubmit", "2.40", By.NAME, driver)
@@ -512,23 +524,23 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_two_btn, "2.41", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_two_btn, "2.42", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 3 Page
     set_captcha_codes("3.00", "3.01", "3.02", "3.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Test date", "3.10", "3.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_three_date_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "preferredTestDate", "3.20", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Test Date Input", step_three_date_form, "3.21", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Test Date Input", step_three_date_form, test_date, "3.22", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_three_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "drivingLicenceSubmit", "3.30", By.NAME, driver)
@@ -536,23 +548,23 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_three_btn, "3.31", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_three_btn, "3.32", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 4 Page
     set_captcha_codes("4.00", "4.01", "4.02", "4.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Test centre", "4.10", "4.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_four_postcode_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "testCentreName", "4.20", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Postcode Input", step_four_postcode_form, "4.21", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Postcode Input", step_four_postcode_form, post_code, "4.22", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 4.3 - Postcode Search & Loop
     keep_searching_centres = True
@@ -588,7 +600,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
 
         execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_btn, "4.40", driver)
         # Wait at least x seconds before checking the search results
-        time.sleep(get_random_delay(search_delay_range_1, search_delay_range_2))
+        time.sleep(get_random_delay_or_median(search_delay_range_1, search_delay_range_2))
 
         search_results_exist = execute_with_retry(
             retries, is_el_found_by_attribute, "test-centre-content", "4.50", By.CLASS_NAME, driver, 25, 2.5)
@@ -611,7 +623,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
                 else:
                     logger.debug("4.53b - Did not find an available booking at " + i + ".")
                     # Wait at least x seconds before searching again
-                    time.sleep(get_random_delay(search_delay_range_1, search_delay_range_2))
+                    time.sleep(get_random_delay_or_median(search_delay_range_1, search_delay_range_2))
                     pass
 
     time.sleep(3)  # Wait at least 3 seconds after clicking on a booking
@@ -621,21 +633,21 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
 
     execute_with_retry(
         retries, quit_if_title_mismatch, "Test date / time — test times available", "5.10", "5.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_five_calendar_btn = execute_with_retry(
         retries, get_el_by_xpath_else_quit,
         "Calendar Btn", "5.20", "//td[@class='BookingCalendar-date--bookable ']", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Calendar Btn", step_five_calendar_btn, "5.21", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_five_timeslot_btn = execute_with_retry(
         retries, get_el_by_xpath_else_quit,
         "Time Slot Btn", "5.30", "//li[@class='SlotPicker-day is-active']/label", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Time Slot Btn", step_five_timeslot_btn, "5.31", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_five_submit_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "chooseSlotSubmit", "5.40", By.NAME, driver)
@@ -643,7 +655,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_five_submit_btn, "5.41", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_five_submit_btn, "5.42", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     on_modal_screen = execute_with_retry(
         retries, get_el_by_xpath_else_quit,
@@ -657,112 +669,112 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
 
         execute_with_retry(
             retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "5.52", driver)
-        time.sleep(get_random_delay(delay_range_1, delay_range_2))
+        time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 6 Page
     set_captcha_codes("6.00", "6.01", "6.02", "6.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Your details", "6.10", "6.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_title_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "details-suffix", "6.20.0", By.ID, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Title Input", step_six_title_form, "6.20.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, try_select_dropdown_text_else_quit, "Title Input", step_six_title_form, user_title, "6.20.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_first_name_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "firstName", "6.21.0", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "First Names Input", step_six_first_name_form, "6.21.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "First Names Input", step_six_first_name_form, first_names, "6.21.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_surname_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "surname", "6.22.0", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Surname Input", step_six_surname_form, "6.22.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Surname Input", step_six_surname_form, surname, "6.22.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_address_line_1_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "addressLine1", "6.23.0", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Address Line 1 Input", step_six_address_line_1_form, "6.23.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Address Line 1 Input", step_six_address_line_1_form, address_line_1, "6.23.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_town_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "town", "6.24.0", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Town Input", step_six_town_form, "6.24.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Town Input", step_six_town_form, town, "6.24.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_postcode_full_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "postcode", "6.25.0", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Postcode Full Input", step_six_postcode_full_form, "6.25.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Postcode Full Input", step_six_postcode_full_form, post_code_full, "6.25.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_email_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "emailAddress", "6.26.0", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Email Input", step_six_email_form, "6.26.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit, "Email Input", step_six_email_form, email, "6.26.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_confirm_email_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "confirmEmailAddress", "6.27.0", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Confirm Email Input", step_six_confirm_email_form, "6.27.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Confirm Email Input", step_six_confirm_email_form, email, "6.27.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_contact_number_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "contactNumber", "6.28.0", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Contact Number Input", step_six_contact_number_form, "6.28.1", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Contact Number Input", step_six_contact_number_form, contact_number, "6.28.2", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_six_submit_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "detailsSubmit", "6.30", By.NAME, driver)
@@ -770,70 +782,70 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_six_submit_btn, "6.31", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_six_submit_btn, "6.32", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 7
     set_captcha_codes("7.00", "7.01", "7.02", "7.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Card details", "7.10", "7.11", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_card_number_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "cardNumber", "7.20", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Card Number Input", step_seven_card_number_form, "7.21", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Card Number Input", step_seven_card_number_form, card_number, "7.22", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_expiry_month_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "expiresOnMonth", "7.30", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Expiry Month Input", step_seven_expiry_month_form, "7.31", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, try_select_dropdown_text_else_quit,
         "Expiry Month Input", step_seven_expiry_month_form, expiry_month, "7.32", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_expiry_year_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "expiresOnYear", "7.40", By.NAME, driver)
 
     execute_with_retry(retries, click_el_else_quit, "Expiry Year Input", step_seven_expiry_year_form, "7.41", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, try_select_dropdown_text_else_quit,
         "Expiry Year Input", step_seven_expiry_year_form, expiry_year, "7.42", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_card_holder_name_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "cardHolderName", "7.50", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Card Holder Name Input", step_seven_card_holder_name_form, "7.51", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Card Holder Name Input", step_seven_card_holder_name_form, card_holder_name, "7.52", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_security_code_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "securityCode", "7.60", By.NAME, driver)
 
     execute_with_retry(
         retries, click_el_else_quit, "Security Code Input", step_seven_security_code_form, "7.61", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     execute_with_retry(
         retries, fill_text_input_else_quit,
         "Security Code Input", step_seven_security_code_form, security_code, "7.62", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     step_seven_submit_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "paymentSubmit", "7.70", By.NAME, driver)
@@ -841,7 +853,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_seven_submit_btn, "7.71", driver)
 
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_seven_submit_btn, "7.72", driver)
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+    time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
     # Step 8
     set_captcha_codes("8.00", "8.01", "8.02", "8.03")
@@ -874,7 +886,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
         execute_with_retry(retries, verify_submit_btn_el_else_quit, step_eight_submit_btn, "8.31", driver)
 
         execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_eight_submit_btn, "8.32", driver)
-        time.sleep(get_random_delay(delay_range_1, delay_range_2))
+        time.sleep(get_random_delay_or_median(delay_range_1, delay_range_2))
 
         while True:
             try:
