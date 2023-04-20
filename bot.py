@@ -2,7 +2,6 @@ from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.action_chains import ActionChains
 import winsound
 import undetected_chromedriver as uc
 import random
@@ -122,7 +121,9 @@ def handle_err_and_quit(error, code, message, browser):
     try_screenshot(code, message, browser)
     logger.debug(code + " - " + type(error).__name__ + ": " + message)
     logger.error(code + " - " + traceback.format_exc())
-    play_song("999X", error_loop, winsound.SND_LOOP)
+    play_song("999X", error_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+    while True:
+        time.sleep(1)  # Don't actually quit browser to keep song playing
     close_and_kill(browser)
 
 
@@ -134,49 +135,50 @@ def pause_if_captcha_page_watcher(browser):
             return
         time.sleep(1)
         logger.debug(captcha_code_1 + " - Checking if captcha page...")
-        if is_el_found_by_attribute_single_check("iframe", captcha_code_1, By.TAG_NAME, browser):
+        if is_el_found_by_xpath("Captcha iframe", captcha_code_1, "//iframe[@id='main-iframe']", browser):
             with thread_paused(main_thread):
                 logger.debug(captcha_code_2 + " - Pausing main thread...")
-                logger.debug(captcha_code_2 + "a - On captcha page. Waiting for user to continue execution...")
-                play_song(captcha_code_2 + "M", captcha_sound_loop, winsound.SND_ASYNC|winsound.SND_LOOP)
-                input("Press enter to continue execution when page is ready...")
-                logger.debug(captcha_code_3 + " - Continuing execution...")
-                stop_song(captcha_code_3 + "M")
+                logger.debug(captcha_code_2 + " - On captcha page. Waiting to leave this page to continue execution...")
+                play_song(captcha_code_2, captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+                time.sleep(5)  # Sleep while captcha is solved
 
                 page_check_count = 0
                 is_on_captcha_page = False  # initialize boolean
-                while is_el_found_by_attribute_single_check("error-content", captcha_code_1, By.CLASS_NAME, browser):
-                    page_check_count += 1
-                    logger.debug(captcha_code_3 + "a - On captcha page again. Page check count: " +
-                                 str(page_check_count) + ". Waiting for user to continue execution...")
-                    play_song(captcha_code_2 + "M", captcha_sound_loop, winsound.SND_ASYNC|winsound.SND_LOOP)
-                    input("Press enter to continue execution when page is ready...")
-                    stop_song(captcha_code_3 + "M")
-                    if page_check_count != 3:
-                        logger.debug(captcha_code_3 + "b - Continuing execution...")
+                logger.debug(captcha_code_2 + " - Checking if captcha page...")
+                while is_el_found_by_xpath("Captcha iframe", captcha_code_1, "//iframe[@id='main-iframe']", browser,
+                                           1, 0.5):
+                    logger.debug(captcha_code_3 + "a - Still on captcha page. Page check count: " +
+                                 str(page_check_count) + ". Waiting to leave this page to continue execution...")
+                    if page_check_count != max_repeat_captcha_checks:
+                        page_check_count += 1
+                        logger.debug(captcha_code_3 + "b - Continuing to check if on captcha page...")
                         time.sleep(1)
                     else:
+                        page_check_count += 1
                         logger.debug(captcha_code_3 + "c - Stopped checks after " + str(page_check_count) +
                                      " page checks. Likely still on captcha page. Continuing execution...")
                         is_on_captcha_page = True
                         break
+                stop_song(captcha_code_4)
                 resume_message = "Likely still on captcha page" if is_on_captcha_page else "Not on captcha page"
-                logger.debug(captcha_code_3 + "* - " + resume_message + ". Resuming main thread...")
+                logger.debug(captcha_code_4 + " - " + resume_message + ". Resuming main thread...")
         else:
-            logger.debug(captcha_code_2 + "b - Not on captcha page. Continuing execution...")
+            logger.debug(captcha_code_1 + " - Not on captcha page. Continuing execution...")
 
 
-def set_captcha_codes(code1, code2, code3):
-    global captcha_code_1, captcha_code_2, captcha_code_3
+def set_captcha_codes(code1, code2, code3, code4):
+    global captcha_code_1, captcha_code_2, captcha_code_3, captcha_code_4
     captcha_code_1 = code1
     captcha_code_2 = code2
     captcha_code_3 = code3
+    captcha_code_4 = code4
 
 
+# Does not retry on timeout as we only want to check once. Retry only if a different exception is raised.
 def is_el_found_by_attribute_single_check(name, code, by_attr, browser):
     try:
         logger.debug(code + " - Now capturing element by " + str(by_attr) + "...")
-        element = browser.find_element(by=by_attr, value=name)
+        browser.find_element(by=by_attr, value=name)
         logger.debug(code + "a - Element captured by " + str(by_attr) + ". Element is: " + name)
         return True
     except NoSuchElementException as exc:
@@ -220,7 +222,7 @@ def quit_if_title_mismatch(title, code1, code2, browser):
 def is_el_found_by_attribute(name, code, by_attr, browser, timeout=5, polling=0.5):
     try:
         logger.debug(code + " - Now capturing element by " + str(by_attr) + "...")
-        element = WebDriverWait(browser, timeout, polling).until(lambda d: d.find_element(by=by_attr, value=name))
+        WebDriverWait(browser, timeout, polling).until(lambda d: d.find_element(by=by_attr, value=name))
         logger.debug(code + "a - Element captured by " + str(by_attr) + ". Element is: " + name)
         return True
     except TimeoutException as exc:
@@ -228,6 +230,20 @@ def is_el_found_by_attribute(name, code, by_attr, browser, timeout=5, polling=0.
         return False
     except Exception as exc:
         raise RetryOnException(exc, code + "c", "Failed to capture element by " + str(by_attr), browser)
+
+
+# Does not retry on timeout as we only want to check once. Retry only if a different exception is raised.
+def is_el_found_by_xpath(name, code, xpath, browser, timeout=5, polling=0.5):
+    try:
+        logger.debug(code + " - Now capturing element (having xpath: '" + xpath + "')...")
+        WebDriverWait(browser, timeout, polling).until(lambda d: d.find_element("xpath", xpath))
+        logger.debug(code + "a - Captured element (having xpath: '" + xpath + "'). Element is: " + name)
+        return True
+    except TimeoutException as exc:
+        log_err(exc, code + "b", "Element (having xpath: '" + xpath + "') was not found")
+        return False
+    except Exception as exc:
+        raise RetryOnException(exc, code + "c", "Failed to capture element (having xpath: '" + xpath + "')", browser)
 
 
 def get_el_by_attribute_else_quit(name, code, by_attr, browser, timeout=5, polling=0.5):
@@ -274,24 +290,19 @@ def get_el_by_tag_and_text_sibling_else_quit(name, code, tag, text, tag_target, 
 def get_el_by_xpath_else_quit(name, code, xpath, browser, timeout=5, polling=0.5):
     try:
         logger.debug(code + " - Now capturing element (having xpath: '" + xpath + "')...")
-        element = WebDriverWait(browser, timeout, polling).until(
-            lambda d: d.find_element("xpath", xpath))
-        logger.debug(
-            code + "a - Captured element (having xpath: '" + xpath + "'). Element is: " + name)
+        element = WebDriverWait(browser, timeout, polling).until(lambda d: d.find_element("xpath", xpath))
+        logger.debug(code + "a - Captured element (having xpath: '" + xpath + "'). Element is: " + name)
         return element
     except TimeoutException as exc:
-        raise RetryOnException(
-            exc, code + "b", "Element (having xpath: '" + xpath + "') was not found", browser)
+        raise RetryOnException(exc, code + "b", "Element (having xpath: '" + xpath + "') was not found", browser)
     except Exception as exc:
-        raise RetryOnException(
-            exc, code + "c", "Failed to capture element (having xpath: '" + xpath + "')", browser)
+        raise RetryOnException(exc, code + "c", "Failed to capture element (having xpath: '" + xpath + "')", browser)
 
 
 def try_move_to_el_else_quit(name, element, code, browser):
     try:
         logger.debug(code + " - Now moving to element " + name + "...")
-        actions = ActionChains(browser)
-        actions.move_to_element(element).perform()
+        driver.execute_script("arguments[0].scrollIntoView(true);", element);
         logger.debug(code + "a - Moved to element " + name + " successfully")
     except Exception as exc:
         raise RetryOnException(exc, code + "b", "Failed to move to element " + name, browser)
@@ -433,24 +444,30 @@ captcha_sound_loop = "captcha_sound_loop"
 available_booking_sound = "available_booking_sound"
 final_step_loop = "final_step_loop"
 error_loop = "error_loop"
+delay_range_1 = 12
+delay_range_2 = 18
+search_delay_range_1 = 12
+search_delay_range_2 = 18
+retries = 3
+is_incognito = False
+max_repeat_captcha_checks = -1
+# Check error-content captcha & repeats this check for "max_repeat_captcha_checks" times, negative for indefinite checks
 
 options = uc.ChromeOptions()
 # options.add_argument("--headless")
 options.add_argument("--start-maximized")
-options.add_argument("--incognito")
+if is_incognito:
+    options.add_argument("--incognito")  # Toggle this when Error 15 appears
 # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
 #                     "Chrome/111.0.0.0 Safari/537.36")
 
 with Fragile(Chrome(options=options, version_main=111)) as driver:
     main_thread = threading.current_thread()
 
-    delay_range_1 = 12
-    delay_range_2 = 18
-    retries = 3
     execute_with_retry(retries, try_get_url, target_url, "0.00", driver)
 
     # Step 1 Page
-    captcha_code_1, captcha_code_2, captcha_code_3 = "1.00", "1.01", "1.02"
+    captcha_code_1, captcha_code_2, captcha_code_3, captcha_code_4 = "1.00", "1.01", "1.02", "1.03"
     kill_thread = False
     watcher = threading.Thread(target=pause_if_captcha_page_watcher, args=(driver,))
     watcher.start()
@@ -467,7 +484,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 2 Page
-    set_captcha_codes("2.00", "2.01", "2.02")
+    set_captcha_codes("2.00", "2.01", "2.02", "2.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Licence details", "2.10", "2.11", driver)
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
@@ -498,7 +515,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 3 Page
-    set_captcha_codes("3.00", "3.01", "3.02")
+    set_captcha_codes("3.00", "3.01", "3.02", "3.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Test date", "3.10", "3.11", driver)
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
@@ -522,7 +539,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 4 Page
-    set_captcha_codes("4.00", "4.01", "4.02")
+    set_captcha_codes("4.00", "4.01", "4.02", "4.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Test centre", "4.10", "4.11", driver)
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
@@ -545,34 +562,62 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
 
         execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_btn, "4.31", driver)
 
-        execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_btn, "4.32", driver)
-        time.sleep(get_random_delay(delay_range_1, delay_range_2))
+        # Try to navigate to the button by moving to page header
+        step_four_header = execute_with_retry(
+            retries, get_el_by_attribute_else_quit, "page-header", "4.32", By.CLASS_NAME, driver)
+
+        execute_with_retry(
+            retries, try_move_to_el_else_quit, "Page Header Submit Btn", step_four_header, "4.33", driver)
+
+        # Check if modal exists, if so wait 10-15 minutes before clicking submit btn
+        on_limit_modal_screen = is_el_found_by_xpath(
+            "Limit Modal Window Shown", "4.34", "//div[@class='underlay' and @style='display: block;']", driver, 25, 3)
+
+        if on_limit_modal_screen:
+            logger.debug("4.35 - Sleeping to wait for Max Searches Per Hour to pass. User shouldn't touch the page...")
+            time.sleep(900)  # 15 minutes
+            logger.debug("4.36 - Awakened from sleep, expecting Max Searches Per Hour to have passed")
+
+            step_four_ok_modal_btn = execute_with_retry(
+                retries, get_el_by_xpath_else_quit, "Limit Modal Ok Btn", "4.37",
+                "//div[@class='underlay' and @style='display: block;']"
+                "/section/div/div[@class='dialog-wrapper-inner']/div/a", driver)
+
+            execute_with_retry(
+                retries, click_el_else_quit, "Limit Modal Ok Btn", step_four_ok_modal_btn, "4.38", driver)
+
+        execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_btn, "4.40", driver)
+        # Wait at least x seconds before checking the search results
+        time.sleep(get_random_delay(search_delay_range_1, search_delay_range_2))
 
         search_results_exist = execute_with_retry(
-            retries, is_el_found_by_attribute, "test-centre-content", "4.40", By.CLASS_NAME, driver, 25, 2.5)
+            retries, is_el_found_by_attribute, "test-centre-content", "4.50", By.CLASS_NAME, driver, 25, 2.5)
 
         if search_results_exist:
             for i in test_centre_names:
-                logger.debug("4.41 - Searching for an available booking at " + i + "...")
+                logger.debug("4.51 - Searching for an available booking at " + i + "...")
                 step_four_test_el = execute_with_retry(
                     retries, get_el_by_tag_and_text_sibling_else_quit,
-                    "Test Centre " + i + " Status Link", "4.42", "h4", i, "h5", driver)
+                    "Test Centre " + i + " Status Link", "4.52", "h4", i, "h5", driver)
 
                 if execute_with_retry(
                         retries, is_el_text_matching,
-                        "Test Centre " + i + " Status Message", step_four_test_el, "available", "4.43", driver):
-                    play_song("4.43" + "M", available_booking_sound, winsound.SND_ASYNC)
-                    logger.debug("4.43a - Found an available booking at " + i + "!!!")
-                    execute_with_retry(retries, click_el_else_quit, "Booking Link", step_four_test_el, "4.44", driver)
+                        "Test Centre " + i + " Status Message", step_four_test_el, "available", "4.53", driver):
+                    play_song("4.53" + "M", available_booking_sound)
+                    logger.debug("4.53a - Found an available booking at " + i + "!!!")
+                    execute_with_retry(retries, click_el_else_quit, "Booking Link", step_four_test_el, "4.54", driver)
                     keep_searching_centres = False
                     break
                 else:
-                    logger.debug("4.43b - Did not find an available booking at " + i + ".")
+                    logger.debug("4.53b - Did not find an available booking at " + i + ".")
+                    # Wait at least x seconds before searching again
+                    time.sleep(get_random_delay(search_delay_range_1, search_delay_range_2))
                     pass
-    time.sleep(get_random_delay(delay_range_1, delay_range_2))
+
+    time.sleep(3)  # Wait at least 3 seconds after clicking on a booking
 
     # Step 5 Page
-    set_captcha_codes("5.00", "5.01", "5.02")
+    set_captcha_codes("5.00", "5.01", "5.02", "5.03")
 
     execute_with_retry(
         retries, quit_if_title_mismatch, "Test date / time — test times available", "5.10", "5.11", driver)
@@ -615,7 +660,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
         time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 6 Page
-    set_captcha_codes("6.00", "6.01", "6.02")
+    set_captcha_codes("6.00", "6.01", "6.02", "6.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Your details", "6.10", "6.11", driver)
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
@@ -728,7 +773,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 7
-    set_captcha_codes("7.00", "7.01", "7.02")
+    set_captcha_codes("7.00", "7.01", "7.02", "7.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Card details", "7.10", "7.11", driver)
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
@@ -799,11 +844,11 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     time.sleep(get_random_delay(delay_range_1, delay_range_2))
 
     # Step 8
-    set_captcha_codes("8.00", "8.01", "8.02")
+    set_captcha_codes("8.00", "8.01", "8.02", "8.03")
 
     execute_with_retry(retries, quit_if_title_mismatch, "Confirm & pay", "8.10", "8.11", driver)
 
-    play_song("8.12M", final_step_loop, winsound.SND_ASYNC|winsound.SND_LOOP)
+    play_song("8.12M", final_step_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
 
     if should_wait_on_confirm_page:
         while True:
