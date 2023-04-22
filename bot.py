@@ -98,8 +98,10 @@ class Fragile(object):
 
 def close_and_kill(browser):
     global kill_thread
+    global kill_modal_thread  # Unused
     logger.debug("Killing process...")
     kill_thread = True
+    kill_modal_thread = True  # Unused
     browser.quit()
     raise Fragile.Break
 
@@ -167,6 +169,80 @@ def pause_if_captcha_page_watcher(browser):
             logger.debug(captcha_code_1 + " - Not on captcha page. Continuing execution...")
 
 
+# Unused as it wasn't working
+def pause_if_modal_watcher(browser):
+    global kill_modal_thread
+    global step_four_btn
+    global step_four_postcode_form
+    global step_four_header
+
+    while True:
+        if kill_modal_thread:
+            return
+        time.sleep(1)
+        logger.debug("4.30 - Checking if modal page...")
+        # Check if on limit modal screen & if page title as expected (for modal watcher)
+        if is_el_found_by_xpath("Limit Modal Window Shown", "4.31",
+                                "//div[@class='underlay' and @style='display: block;']", browser
+                                ) and "Test centre" in execute_with_retry(retries, try_get_title, "4.32", browser):
+            with thread_paused(main_thread):
+                logger.debug("4.33 - Pausing main thread...")
+                logger.debug("4.33 - Sleeping to cool-down Max Searches Per Hour. User shouldn't touch the page...")
+                play_song("4.33", waiting_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+                logger.debug("4.33 - Checking if timeout modal...")
+
+                # Exit modal screen
+                step_four_ok_modal_btn = execute_with_retry(
+                    retries, get_el_by_xpath_else_quit, "Limit Modal Ok Btn", "4.33.2",
+                    "//div[@class='underlay' and @style='display: block;']"
+                    "/section/div/div[@class='dialog-wrapper-inner']/div/a", browser)
+
+                time.sleep(3)  # Modal appeared, wait for a bit
+                execute_with_retry(
+                    retries, click_el_else_quit, "Limit Modal Ok Btn", step_four_ok_modal_btn, "4.33.3", browser)
+                time.sleep(3)  # Modal closed, wait for a bit
+
+                # Refresh target elements
+                step_four_btn = execute_with_retry(
+                    retries, get_el_by_attribute_else_quit, "testCentreSubmit", "4.33.4", By.NAME, browser)
+
+                execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_btn, "4.33.5", browser)
+
+                step_four_postcode_form = execute_with_retry(
+                    retries, get_el_by_attribute_else_quit, "testCentreName", "4.33.6", By.NAME, browser)
+
+                step_four_header = execute_with_retry(
+                    retries, get_el_by_attribute_else_quit, "page-header", "4.33.7", By.CLASS_NAME, browser)
+
+                # Prevent inactivity for 10-15 minutes to pass the Search Limit cool-down
+                logger.debug("4.33.8 - Scroll to top before preventing inactivity...")
+                execute_with_retry(
+                    retries, try_move_to_el_else_quit, "Page Header Submit Btn", step_four_header, "4.33.9", browser)
+
+                sleep_time = 900
+                while sleep_time > 0:
+                    a = get_random_delay_or_median(30, 60)
+                    time.sleep(a)
+                    execute_with_retry(
+                        retries, try_move_to_el_else_quit,
+                        "Page Header Submit Btn (area)", step_four_header, "4.34.0", browser)
+
+                    b = get_random_delay_or_median(30, 60)
+                    time.sleep(b)
+                    execute_with_retry(
+                        retries, click_el_else_quit, "Postcode Input", step_four_postcode_form, "4.34.1", browser)
+
+                    sleep_time -= (a + b)
+                    logger.debug("4.34.2 - Slept for " + str(a + b) + " sec. Sleep time left: " + str(sleep_time) +
+                                 " sec.")
+
+                stop_song("4.35.0")
+                logger.debug("4.35.1 - Awakened from sleep, expecting Max Searches Per Hour to have passed")
+                time.sleep(1)
+        else:
+            logger.debug("4.32 - Not on timeout modal. Continuing execution...")
+
+
 def set_captcha_codes(code1, code2, code3, code4):
     global captcha_code_1, captcha_code_2, captcha_code_3, captcha_code_4
     captcha_code_1 = code1
@@ -196,6 +272,16 @@ def try_get_url(url, code, browser):
         logger.debug(code + "a - Successfully reached target URL")
     except Exception as exc:
         raise RetryOnException(exc, code + "b", "Failed to reach target URL", browser)
+
+
+def try_get_title(code, browser):
+    try:
+        logger.debug(code + " - Now getting page title...")
+        get_title = browser.title.strip()
+        logger.debug(code + "a - Successfully got page title")
+        return get_title
+    except Exception as exc:
+        raise RetryOnException(exc, code + "b", "Failed to get page title", browser)
 
 
 def quit_if_title_mismatch(title, code1, code2, browser):
@@ -303,7 +389,7 @@ def get_el_by_xpath_else_quit(name, code, xpath, browser, timeout=5, polling=0.5
 def try_move_to_el_else_quit(name, element, code, browser):
     try:
         logger.debug(code + " - Now moving to element " + name + "...")
-        driver.execute_script("arguments[0].scrollIntoView(true);", element);
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
         logger.debug(code + "a - Moved to element " + name + " successfully")
     except Exception as exc:
         raise RetryOnException(exc, code + "b", "Failed to move to element " + name, browser)
@@ -381,7 +467,7 @@ def stop_song(code):
 def play_song(code, sound_track, params=winsound.SND_ASYNC):
     logger.debug(code + "a - Music has started...")
     try:
-        fullPath:str = fr"{os.getcwd()}\sounds\{sound_track}.wav".replace("\\", "/")
+        fullPath: str = fr"{os.getcwd()}\sounds\{sound_track}.wav".replace("\\", "/")
         winsound.PlaySound(fullPath, params)
     except Exception as exc:
         log_err(exc, code + "b", "Attempted to play sound but failed. Exiting thread...")
@@ -577,108 +663,67 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
         retries, fill_text_input_else_quit, "Postcode Input", step_four_postcode_form, post_code, "4.22", driver)
 
     # Step 4.3 - Postcode Search & Loop
+    # # Check if modal exists, if so wait 10-15 minutes before clicking submit btn --- doesn't work
+    # kill_modal_thread = False
+    # modal_watcher = threading.Thread(target=pause_if_modal_watcher, args=(driver,))
+    # modal_watcher.start()
+
     keep_searching_centres = True
     while keep_searching_centres:
         time.sleep(get_random_delay_or_median(search_delay_range_1, search_delay_range_2))
 
-        step_four_btn = execute_with_retry(
-            retries, get_el_by_attribute_else_quit, "testCentreSubmit", "4.30", By.NAME, driver)
+        # Refresh postcode_form element target upon driver.refresh() each iteration
+        step_four_postcode_form = execute_with_retry(
+            retries, get_el_by_attribute_else_quit, "testCentreName", "4.20", By.NAME, driver)
 
-        execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_btn, "4.31", driver)
+        step_four_btn = execute_with_retry(
+            retries, get_el_by_attribute_else_quit, "testCentreSubmit", "4.40", By.NAME, driver)
+
+        execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_btn, "4.41", driver)
 
         # Try to navigate to the button by moving to page header
         step_four_header = execute_with_retry(
-            retries, get_el_by_attribute_else_quit, "page-header", "4.32", By.CLASS_NAME, driver)
+            retries, get_el_by_attribute_else_quit, "page-header", "4.42", By.CLASS_NAME, driver)
 
         execute_with_retry(
-            retries, try_move_to_el_else_quit, "Page Header Submit Btn", step_four_header, "4.33", driver)
+            retries, try_move_to_el_else_quit, "Page Header Submit Btn", step_four_header, "4.43", driver)
 
-        # Check if modal exists, if so wait 10-15 minutes before clicking submit btn
-        on_limit_modal_screen = is_el_found_by_xpath(
-            "Limit Modal Window Shown", "4.34", "//div[@class='underlay' and @style='display: block;']", driver, 25, 3)
-
-        if on_limit_modal_screen:
-            logger.debug("4.35.0 - Sleeping to cool-down Max Searches Per Hour. User shouldn't touch the page...")
-            play_song("4.35.1", waiting_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
-
-            # Exit modal screen
-            step_four_ok_modal_btn = execute_with_retry(
-                retries, get_el_by_xpath_else_quit, "Limit Modal Ok Btn", "4.35.2",
-                "//div[@class='underlay' and @style='display: block;']"
-                "/section/div/div[@class='dialog-wrapper-inner']/div/a", driver)
-
-            time.sleep(3)  # Modal appeared, wait for a bit
-            execute_with_retry(
-                retries, click_el_else_quit, "Limit Modal Ok Btn", step_four_ok_modal_btn, "4.35.3", driver)
-            time.sleep(3)  # Modal closed, wait for a bit
-
-            # Refresh target elements
-            step_four_btn = execute_with_retry(
-                retries, get_el_by_attribute_else_quit, "testCentreSubmit", "4.35.4", By.NAME, driver)
-
-            execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_btn, "4.35.5", driver)
-
-            step_four_postcode_form = execute_with_retry(
-                retries, get_el_by_attribute_else_quit, "testCentreName", "4.35.6", By.NAME, driver)
-
-            step_four_header = execute_with_retry(
-                retries, get_el_by_attribute_else_quit, "page-header", "4.35.7", By.CLASS_NAME, driver)
-
-            # Prevent inactivity for 10-15 minutes to pass the Search Limit cool-down
-            logger.debug("4.35.8 - Scroll to top before preventing inactivity...")
-            execute_with_retry(
-                retries, try_move_to_el_else_quit, "Page Header Submit Btn", step_four_header, "4.35.9", driver)
-
-            sleep_time = 900
-            while sleep_time > 0:
-                a = get_random_delay_or_median(30, 60)
-                time.sleep(a)
-                execute_with_retry(
-                    retries, click_el_else_quit, "Page Header Submit Btn (area)", step_four_header, "4.36.0", driver)
-
-                b = get_random_delay_or_median(30, 60)
-                time.sleep(b)
-                execute_with_retry(
-                    retries, click_el_else_quit, "Postcode Input", step_four_postcode_form, "4.36.1", driver)
-
-                sleep_time -= (a + b)
-                logger.debug("4.36.2 - Slept for " + str(a + b) + " sec. Sleep time left: " + str(sleep_time) + " sec.")
-
-            stop_song("4.37.0")
-            logger.debug("4.37.1 - Awakened from sleep, expecting Max Searches Per Hour to have passed")
-            time.sleep(1)
-
-        execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_btn, "4.40", driver)
+        execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_btn, "4.50", driver)
         # Wait at least x seconds before checking the search results
         time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
         search_results_exist = execute_with_retry(
-            retries, is_el_found_by_attribute, "test-centre-content", "4.50", By.CLASS_NAME, driver, 25, 2.5)
+            retries, is_el_found_by_attribute, "test-centre-content", "4.60", By.CLASS_NAME, driver, 25, 2.5)
 
         if search_results_exist:
             for i in test_centre_names:
-                logger.debug("4.51 - Searching for an available booking at " + i + "...")
+                logger.debug("4.61 - Searching for an available booking at " + i + "...")
                 step_four_test_el = execute_with_retry(
                     retries, get_el_by_tag_and_text_sibling_else_quit,
-                    "Test Centre " + i + " Status Link", "4.52", "h4", i, "h5", driver)
+                    "Test Centre " + i + " Status Link", "4.62", "h4", i, "h5", driver)
 
                 if execute_with_retry(
                         retries, is_el_text_matching,
-                        "Test Centre " + i + " Status Message", step_four_test_el, "available", "4.53", driver):
-                    play_song("4.53" + "M", available_booking_sound)
-                    logger.debug("4.53a - Found an available booking at " + i + "!!!")
+                        "Test Centre " + i + " Status Message", step_four_test_el, "available", "4.63", driver):
+                    play_song("4.63" + "M", available_booking_sound)
+                    logger.debug("4.63a - Found an available booking at " + i + "!!!")
                     execute_with_retry(
-                        retries, try_move_to_el_else_quit, "Booking Link", step_four_test_el, "4.54", driver)
-                    execute_with_retry(retries, click_el_else_quit, "Booking Link", step_four_test_el, "4.55", driver)
+                        retries, try_move_to_el_else_quit, "Booking Link", step_four_test_el, "4.64", driver)
+                    execute_with_retry(retries, click_el_else_quit, "Booking Link", step_four_test_el, "4.65", driver)
                     keep_searching_centres = False
                     break
                 else:
-                    logger.debug("4.53b - Did not find an available booking at " + i + ".")
+                    logger.debug("4.63 - Did not find an available booking at " + i + ".")
                     pass
+        if keep_searching_centres:
+            logger.debug("4.64 - The current URL is: " + driver.current_url + " --- Refreshing the browser...")
+            driver.refresh()
+            time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
     # Step 5 Page
     set_captcha_codes("5.00", "5.01", "5.02", "5.03")
     time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
+    kill_modal_thread = True  # Unused
 
     execute_with_retry(
         retries, quit_if_title_mismatch, "Test date / time — test times available", "5.10", "5.11", driver)
@@ -912,7 +957,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
                 logger.debug("8.20a - Waiting on confirm page indefinitely...")
             except Exception as ex:
                 log_err(ex, "8.20b", "Error while waiting on confirm page for user indefinitely. Waiting until "
-                                      "browser dies...")
+                                     "browser dies...")
                 # Quit the browser instance if browser dies
                 stop_song("8.21M")
                 sleep_while_browser_alive("999", driver)
@@ -936,7 +981,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
                 logger.debug("8.40a - Waiting for user to manually perform transaction...")
             except Exception as ex:
                 log_err(ex, "8.40b", "Error while waiting for user to manually perform transaction. Waiting until "
-                                      "browser dies...")
+                                     "browser dies...")
                 # Quit the browser instance if browser dies
                 stop_song("8.41M")
                 sleep_while_browser_alive("999", driver)
