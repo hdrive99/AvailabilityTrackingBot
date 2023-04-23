@@ -21,5 +21,5 @@ setup(
     long_description=readme,
     classifiers=[],
     packages=find_packages(),
-    install_requires=["selenium", "webdriver-manager", "undetected-chromedriver"]
+    install_requires=["selenium", "webdriver-manager", "undetected-chromedriver", "psutil"]
 )

@@ -2,6 +2,7 @@ from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+import psutil
 import json
 import winsound
 import undetected_chromedriver as uc
@@ -18,6 +19,20 @@ from logging.handlers import RotatingFileHandler
 
 if not sys.gettrace():
     sys.settrace(lambda *args: None)
+
+
+def restart_program():
+    """Restarts the current program, with file objects and descriptors cleanup"""
+
+    try:
+        p = psutil.Process(os.getpid())
+        for handler in p.get_open_files() + p.connections():
+            os.close(handler.fd)
+    except Exception as exc:
+        logging.error(exc)
+
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
 
 
 def _thread_frames(thread):
@@ -125,7 +140,7 @@ def handle_err_and_quit(error, code, message, browser):
     logger.debug(code + " - " + type(error).__name__ + ": " + message)
     logger.error(code + " - " + traceback.format_exc())
     play_song("999X", error_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
-    while True:
+    while manual_restart:
         time.sleep(1)  # Don't actually quit browser to keep song playing
     close_and_kill(browser)
 
@@ -504,11 +519,11 @@ class RetryOnException(Exception):
 file_time = time.strftime("%Y.%m.%d - %H.%M.%S")
 logger = logging.getLogger("Rotating Log")
 logger.root.setLevel(logging.NOTSET)
-handler = RotatingFileHandler("logs/" + file_time + "-debug.log", maxBytes=1000000, backupCount=10)
-handler.namer = namer
+file_handler = RotatingFileHandler("logs/" + file_time + "-debug.log", maxBytes=1000000, backupCount=10)
+file_handler.namer = namer
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 if len(sys.argv) == 0:
     config_file_name = "default.json"
@@ -555,6 +570,7 @@ page_load_delay_range_2 = data["page_load_delay_range_2"]
 retries = data["retries"]
 is_incognito = data["is_incognito"]
 should_pause_on_start = data["should_pause_on_start"]
+manual_restart = data["manual_restart"]
 max_repeat_captcha_checks = data["max_repeat_captcha_checks"]
 # Check error-content captcha & repeats this check for "max_repeat_captcha_checks" times, negative for indefinite checks
 
@@ -992,8 +1008,11 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
 
 logger.debug("Killed process.")
 
-handler.close()
+file_handler.close()
 files = glob.glob('logs/*')
 for f in files:
     if not os.path.getsize(f):
         os.remove(f)
+
+if not manual_restart:
+    restart_program()
