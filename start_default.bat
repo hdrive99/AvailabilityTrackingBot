@@ -1,0 +1,1 @@
+python bot.py default.json
