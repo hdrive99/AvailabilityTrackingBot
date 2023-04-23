@@ -9,6 +9,7 @@ with open("README.md") as f:
 with open("LICENSE") as f:
     project_license = f.read()
 
+# Currently works with selenium version 4.8.3, webdriver-manager version 3.8.6, undetected_chromedriver version 3.4.6
 setup(
     name="AvailabilityTrackingBot",
     version="0.0.1",

@@ -1,0 +1,1 @@
+python %~dp0..\AvailabilityTrackingBot\driving_bot.py default.json

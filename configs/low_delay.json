@@ -36,6 +36,6 @@
     "retries": 3,
     "is_incognito": false,
     "should_pause_on_start": true,
-    "manual_restart": false,
+    "manual_restart": true,
     "max_repeat_captcha_checks": -1
 }
