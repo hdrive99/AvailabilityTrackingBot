@@ -1,1 +1,1 @@
-python ./AvailabilityTrackingBot/driving_bot.py low_delay.json
+python %~dp0..\AvailabilityTrackingBot\driving_bot.py low_delay.json

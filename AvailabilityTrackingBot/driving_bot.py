@@ -203,15 +203,14 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
         retries, get_el_by_xpath_else_quit,
         "Modal Window Visible", "5.50", "//div[@class='underlay-wrapper' and @style='display: block;']", driver, 25, 3)
 
-    if on_modal_screen:
-        # Wait briefly on this step to try and avoid being kicked off
-        time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-        step_five_timeslot_modal_btn = execute_with_retry(
-            retries, get_el_by_xpath_else_quit, "Time Continue Btn", "5.51",
-            "//div[@class='underlay-wrapper']/div/section/div/div[@class='dialog-wrapper-inner']/div/button", driver)
+    # Wait briefly on modal screen to try and avoid being kicked off (unneeded?)
+    time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+    step_five_timeslot_modal_btn = execute_with_retry(
+        retries, get_el_by_xpath_else_quit, "Time Continue Btn", "5.51",
+        "//div[@class='underlay-wrapper']/div/section/div/div[@class='dialog-wrapper-inner']/div/button", driver)
 
-        execute_with_retry(
-            retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "5.52", driver)
+    execute_with_retry(
+        retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "5.52", driver)
 
     # Step 6 Page
     set_captcha_codes("6.00", "6.01", "6.02", "6.03")

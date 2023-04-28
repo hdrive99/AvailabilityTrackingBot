@@ -4,6 +4,7 @@ from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+from datetime import datetime as dt
 import undetected_chromedriver as uc
 import winsound
 import time
@@ -423,6 +424,15 @@ def try_move_to_el_else_quit(name, element, code, browser):
         raise RetryOnException(exc, code + "b", "Failed to move to element " + name, browser)
 
 
+def try_execute_script(script, code, browser):
+    try:
+        logger.debug(code + " - Now executing script: " + script + "...")
+        browser.execute_script(script)
+        logger.debug(code + "a - Executed script successfully")
+    except Exception as exc:
+        log_err(exc, code + "b", "Failed to execute script")
+        pass
+
 def is_el_text_matching(name, element, text_to_match, code, browser):
     try:
         logger.debug(code + " - Now checking if element " + name + " has text that matches '" + text_to_match + "'...")
@@ -447,6 +457,23 @@ def verify_submit_btn_el_else_quit(element, code, browser):
         raise RetryOnException(exc, code + "b", "Element is not submit btn as expected.", browser)
     except Exception as exc:
         raise RetryOnException(exc, code + "c", "Failed to verify submit btn element", browser)
+
+
+def verify_attribute_href_date_is_earlier(booked_date_string, element, code, browser):
+    try:
+        logger.debug(code + " - Now verifying if element's attribute for date is earlier...")
+        booked_date_string = dt.strptime(booked_date_string, "%Y-%m-%d")
+        href = element.get_attribute("href")
+        new_date = dt.strptime(href[-10:], "%Y-%m-%d")
+        logger.debug(code + " - Comparing booked date " + booked_date_string + " with new date " + new_date + "...")
+        if new_date < booked_date_string:
+            logger.debug(code + "a - New date is earlier than the booked date")
+            return True
+        else:
+            logger.debug(code + "b - New date is equal to or later than the booked date")
+            return False
+    except Exception as exc:
+        raise RetryOnException(exc, code + "c", "Failed to verify if element's attribute for date is earlier", browser)
 
 
 def click_el_else_quit(name, element, code, browser):
