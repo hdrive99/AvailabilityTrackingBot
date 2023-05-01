@@ -1,1 +1,0 @@
-python %~dp0..\AvailabilityTrackingBot\theory_bot.py theory\default.json

@@ -1,0 +1,2 @@
+PowerShell -Command "& {taskkill.exe /F /PID $(Get-WmiObject Win32_Process -Filter \"name = 'python.exe'\" | Where-Object {$_.CommandLine -like '*rebook_bot.py*'} | Select -ExpandProperty ProcessId)}"
+taskkill.exe /F /IM "undetected_chromedriver.exe"

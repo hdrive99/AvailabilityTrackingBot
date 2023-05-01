@@ -1,0 +1,1 @@
+python %~dp0..\AvailabilityTrackingBot\rebook_bot.py rebook\default.json

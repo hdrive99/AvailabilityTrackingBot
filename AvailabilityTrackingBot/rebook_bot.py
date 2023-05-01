@@ -11,6 +11,7 @@ import threading
 options = uc.ChromeOptions()
 # options.add_argument("--headless")
 options.add_argument("--start-maximized")
+options.add_argument("--disable-features=VizDisplayCompositor")  # Attempt to fix issue where screenshots aren't working
 if is_incognito:
     options.add_argument("--incognito")  # Toggle this when Error 15 appears
 # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -33,7 +34,8 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     if not should_pause_on_start:
         time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
-    execute_with_retry(retries, quit_if_title_mismatch, "Access your booking - Change booking", "1.10", "1.11", driver)
+    # execute_with_retry(retries, quit_if_title_mismatch, "Access your booking - Change booking", "1.10", "1.11",
+    # driver)
 
     step_one_licence_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "username", "1.20", By.NAME, driver)
@@ -67,7 +69,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     set_captcha_codes("2.00", "2.01", "2.02", "2.03")
     time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
-    execute_with_retry(retries, quit_if_title_mismatch, "Booking details - Change booking", "2.10", "2.11", driver)
+    # execute_with_retry(retries, quit_if_title_mismatch, "Booking details - Change booking", "2.10", "2.11", driver)
 
     step_two_btn = execute_with_retry(retries, get_el_by_attribute_else_quit, "date-time-change", "2.20", By.ID, driver)
 
@@ -78,7 +80,7 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     set_captcha_codes("3.00", "3.01", "3.02", "3.03")
     time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
-    execute_with_retry(retries, quit_if_title_mismatch, "Test date - Change booking", "3.10", "3.11", driver)
+    # execute_with_retry(retries, quit_if_title_mismatch, "Test date - Change booking", "3.10", "3.11", driver)
 
     step_three_test_choice_form = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "test-choice-earliest", "3.20", By.ID, driver)
@@ -100,28 +102,43 @@ with Fragile(Chrome(options=options, version_main=111)) as driver:
     while True:
         time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
-        execute_with_retry(retries, quit_if_title_mismatch,
-                           "Test date / time — test times available - Change booking", "4.10", "4.11", driver)
+        # execute_with_retry(retries, quit_if_title_mismatch, "Test date / time — test times available - Change
+        # booking", "4.10", "4.11", driver)
 
         if is_el_found_by_xpath(
                 "Bookable Calendar Btn", "4.20", "//td[@class='BookingCalendar-date--bookable ']", driver):
             step_six_calendar_btn = execute_with_retry(
                 retries, get_el_by_xpath_else_quit,
-                "Calendar Btn", "4.21a", "//td[@class='BookingCalendar-date--bookable ']", driver)
+                "Calendar Btn", "4.21", "//td[@class='BookingCalendar-date--bookable ']/div/a", driver)
 
             if verify_attribute_href_date_is_earlier(test_date, step_six_calendar_btn, "4.30", driver):
                 logger.debug("4.31a - Found an earlier date!!!")
                 play_song("4.31" + "M", available_booking_sound)
                 break
             else:
-                logger.debug("4.31b - The current URL is: " + driver.current_url + " --- Refreshing the browser...")
+                logger.debug("4.31b - No *earlier* date. URL: " + driver.current_url + " --- Refreshing the browser...")
         else:
-            logger.debug("4.21b - No bookable calendar buttons --- Refreshing the browser...")
+            logger.debug("4.21 - No bookable calendar buttons --- Refreshing the browser...")
 
-        driver.back()
+        if is_el_found_by_xpath("Search Limit Reached Page", "4.32", "//*[@id='main']/header/h1",
+                                driver) or is_el_found_by_xpath(
+                "Modal Window Visible",
+                "4.33", "//div[@class='underlay' and @style='display: block;']", driver):
+            logger.error("444" + " - " + "On Search Limit Reached Page/Modal, now quitting when browser dies...")
+            try_screenshot("4.34", "On Search Limit Reached Page/Modal", driver)
+            play_song("999X", captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+            # Quit the browser instance if browser dies
+            sleep_while_browser_alive("999", driver)
+            logger.debug("Killing process...")
+            kill_thread = True
+            raise Fragile.Break
+
+        execute_with_retry(retries, try_get_url,
+                           "https://driverpracticaltest.dvsa.gov.uk/manage?execution=e1s2",
+                           "4.40", driver)
         time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
 
-        execute_with_retry(retries, quit_if_title_mismatch, "Test date - Change booking", "4.40", "4.41", driver)
+        # execute_with_retry(retries, quit_if_title_mismatch, "Test date - Change booking", "4.40", "4.41", driver)
 
         step_three_btn = execute_with_retry(
             retries, get_el_by_attribute_else_quit, "drivingLicenceSubmit", "4.50", By.NAME, driver)
