@@ -55,6 +55,9 @@ max_repeat_captcha_checks = data.get("max_repeat_captcha_checks", None)
 # Check error-content captcha & repeats this check for "max_repeat_captcha_checks" times, negative for indefinite checks
 
 test_centre = data.get("test_centre", None)
+current_test_date = data.get("current_test_date", None)
+earliest_desired_rebook_date = data.get("earliest_desired_rebook_date", None)
+# To get any available earliest_desired_rebook_date, set this to null in the config setting
 test_ref_no = data.get("test_ref_no", None)
 
 captcha_code_1, captcha_code_2, captcha_code_3, captcha_code_4 = "1.00", "1.01", "1.02", "1.03"

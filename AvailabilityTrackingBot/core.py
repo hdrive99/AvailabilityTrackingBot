@@ -459,19 +459,34 @@ def verify_submit_btn_el_else_quit(element, code, browser):
         raise RetryOnException(exc, code + "c", "Failed to verify submit btn element", browser)
 
 
-def verify_attribute_href_date_is_earlier(booked_date_string, element, code, browser):
+# TODO: Fix: This currently assumes there will only be 1 cancellation at any time, selecting the 1st & ignoring the rest
+# So if 1st cancellation is not later than earliest_desired_rebook_date, but 2nd is, then we miss the 2nd rebook chance
+def verify_attribute_href_date_is_earlier(booked_date_string, earliest_desired_rebook_date_str, element, code, browser):
     try:
-        logger.debug(code + " - Now verifying if element's attribute for date is earlier...")
+        if earliest_desired_rebook_date_str != None:
+            earliest_desired_rebook_date_str = dt.strptime(earliest_desired_rebook_date_str, "%Y-%m-%d")
+            logger.debug(code + " - Now verifying if element's attribute for date is earlier... "
+                                "(but later than: " + str(earliest_desired_rebook_date_str) + ")")
+        else:
+            logger.debug(code + " - Now verifying if element's attribute for date is earlier...")
         booked_date_string = dt.strptime(booked_date_string, "%Y-%m-%d")
         href = element.get_attribute("href")
         new_date = dt.strptime(href[-10:], "%Y-%m-%d")
         logger.debug(
             code + " - Comparing booked date " + str(booked_date_string) + " with new date " + str(new_date) + "...")
-        if new_date < booked_date_string:
-            logger.debug(code + "a - New date is earlier than the booked date")
+        if new_date >= booked_date_string:
+            logger.debug(code + "b - New date is equal to or later than the booked date")
+            return False
+
+        logger.debug(code + "a - New date is earlier than the booked date")
+        if earliest_desired_rebook_date_str == None:
+            return True
+
+        if new_date >= earliest_desired_rebook_date_str:
+            logger.debug(code + "c - New date is later than or is on the earliest desired rebooking date!!! Booking...")
             return True
         else:
-            logger.debug(code + "b - New date is equal to or later than the booked date")
+            logger.debug(code + "d - New date is earlier than the earliest desired rebooking date. Ignoring...")
             return False
     except Exception as exc:
         raise RetryOnException(exc, code + "c", "Failed to verify if element's attribute for date is earlier", browser)
