@@ -465,7 +465,8 @@ def verify_attribute_href_date_is_earlier(booked_date_string, element, code, bro
         booked_date_string = dt.strptime(booked_date_string, "%Y-%m-%d")
         href = element.get_attribute("href")
         new_date = dt.strptime(href[-10:], "%Y-%m-%d")
-        logger.debug(code + " - Comparing booked date " + booked_date_string + " with new date " + new_date + "...")
+        logger.debug(
+            code + " - Comparing booked date " + str(booked_date_string) + " with new date " + str(new_date) + "...")
         if new_date < booked_date_string:
             logger.debug(code + "a - New date is earlier than the booked date")
             return True
