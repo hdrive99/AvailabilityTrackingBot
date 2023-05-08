@@ -36,8 +36,8 @@
   "page_load_delay_range_1": 5,
   "page_load_delay_range_2": 5,
   "retries": 3,
-  "is_incognito": true,
-  "should_pause_on_start": false,
-  "manual_restart": false,
+  "is_incognito": false,
+  "should_pause_on_start": true,
+  "manual_restart": true,
   "max_repeat_captcha_checks": -1
 }

@@ -173,44 +173,50 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
     time.sleep(get_random_delay_or_median(page_load_delay_range_1, page_load_delay_range_2))
     kill_modal_thread = True  # Unused
 
-    execute_with_retry(
-        retries, quit_if_title_mismatch, "Test date / time — test times available", "5.10", "5.11", driver)
+    if not should_pause_on_start:
+        execute_with_retry(
+            retries, quit_if_title_mismatch, "Test date / time — test times available", "5.10", "5.11", driver)
 
-    step_five_calendar_btn = execute_with_retry(
-        retries, get_el_by_xpath_else_quit,
-        "Calendar Btn", "5.20", "//td[@class='BookingCalendar-date--bookable ']", driver)
+        step_five_calendar_btn = execute_with_retry(
+            retries, get_el_by_xpath_else_quit,
+            "Calendar Btn", "5.20", "//td[@class='BookingCalendar-date--bookable ']", driver)
 
-    time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Calendar Btn", step_five_calendar_btn, "5.21", driver)
-    time.sleep(1)  # Wait briefly for radio buttons to load
+        time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+        execute_with_retry(retries, click_el_else_quit, "Calendar Btn", step_five_calendar_btn, "5.21", driver)
+        time.sleep(1)  # Wait briefly for radio buttons to load
 
-    step_five_timeslot_btn = execute_with_retry(
-        retries, get_el_by_xpath_else_quit,
-        "Time Slot Btn", "5.30", "//li[@class='SlotPicker-day is-active']/label", driver)
+        step_five_timeslot_btn = execute_with_retry(
+            retries, get_el_by_xpath_else_quit,
+            "Time Slot Btn", "5.30", "//li[@class='SlotPicker-day is-active']/label", driver)
 
-    time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Time Slot Btn", step_five_timeslot_btn, "5.31", driver)
+        time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+        execute_with_retry(retries, click_el_else_quit, "Time Slot Btn", step_five_timeslot_btn, "5.31", driver)
 
-    step_five_submit_btn = execute_with_retry(
-        retries, get_el_by_attribute_else_quit, "chooseSlotSubmit", "5.40", By.NAME, driver)
+        step_five_submit_btn = execute_with_retry(
+            retries, get_el_by_attribute_else_quit, "chooseSlotSubmit", "5.40", By.NAME, driver)
 
-    execute_with_retry(retries, verify_submit_btn_el_else_quit, step_five_submit_btn, "5.41", driver)
+        execute_with_retry(retries, verify_submit_btn_el_else_quit, step_five_submit_btn, "5.41", driver)
 
-    time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_five_submit_btn, "5.42", driver)
+        time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+        execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_five_submit_btn, "5.42", driver)
 
-    on_modal_screen = execute_with_retry(
-        retries, get_el_by_xpath_else_quit,
-        "Modal Window Visible", "5.50", "//div[@class='underlay-wrapper' and @style='display: block;']", driver, 25, 3)
+        on_modal_screen = execute_with_retry(
+            retries, get_el_by_xpath_else_quit,
+            "Modal Window Visible", "5.50", "//div[@class='underlay-wrapper' and @style='display: block;']",
+            driver, 25, 3)
 
-    # Wait briefly on modal screen to try and avoid being kicked off (unneeded?)
-    time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+        # Wait briefly on modal screen to try and avoid being kicked off (unneeded?)
+        time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+    else:
+        play_song("5.51", paused_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+        input("Paused. Press enter to continue when on modal Continue Btn, or don't to avoid potential Error 15...")
+        stop_song("5.52")
     step_five_timeslot_modal_btn = execute_with_retry(
-        retries, get_el_by_xpath_else_quit, "Time Continue Btn", "5.51",
+        retries, get_el_by_xpath_else_quit, "Time Continue Btn", "5.60",
         "//div[@class='underlay-wrapper']/div/section/div/div[@class='dialog-wrapper-inner']/div/button", driver)
 
     execute_with_retry(
-        retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "5.52", driver)
+        retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "5.61", driver)
 
     # Step 6 Page
     set_captcha_codes("6.00", "6.01", "6.02", "6.03")
@@ -316,6 +322,7 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
 
     execute_with_retry(retries, verify_submit_btn_el_else_quit, step_six_submit_btn, "6.31", driver)
 
+    time.sleep(3)  # Sleep at least 3 seconds on long form page
     time.sleep(get_random_delay_or_median(submit_delay_range_1, submit_delay_range_2))
     execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_six_submit_btn, "6.32", driver)
 

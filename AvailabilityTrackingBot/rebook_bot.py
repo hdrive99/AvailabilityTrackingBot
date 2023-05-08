@@ -107,12 +107,12 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
 
         if is_el_found_by_xpath(
                 "Bookable Calendar Btn", "4.20", "//td[@class='BookingCalendar-date--bookable ']", driver):
-            step_six_calendar_btn = execute_with_retry(
+            step_four_calendar_btn = execute_with_retry(
                 retries, get_el_by_xpath_else_quit,
                 "Calendar Btn", "4.21", "//td[@class='BookingCalendar-date--bookable ']/div/a", driver)
 
             if verify_attribute_href_date_is_earlier(
-                    current_test_date, earliest_desired_rebook_date, step_six_calendar_btn, "4.30", driver):
+                    current_test_date, earliest_desired_rebook_date, step_four_calendar_btn, "4.30", driver):
                 logger.debug("4.31a - Found an earlier date in specified parameters!!!")
                 play_song("4.31" + "M", available_booking_sound)
                 break
@@ -150,23 +150,23 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
         execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_three_btn, "4.52", driver)
 
     # time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Calendar Btn", step_six_calendar_btn, "4.60", driver)
+    execute_with_retry(retries, click_el_else_quit, "Calendar Btn", step_four_calendar_btn, "4.60", driver)
     # time.sleep(1)  # Wait briefly for radio buttons to load
 
-    step_six_timeslot_btn = execute_with_retry(
+    step_four_timeslot_btn = execute_with_retry(
         retries, get_el_by_xpath_else_quit,
         "Time Slot Btn", "4.61", "//li[@class='SlotPicker-day is-active']/label", driver)
 
     # time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Time Slot Btn", step_six_timeslot_btn, "4.62", driver)
+    execute_with_retry(retries, click_el_else_quit, "Time Slot Btn", step_four_timeslot_btn, "4.62", driver)
 
-    step_six_submit_btn = execute_with_retry(
+    step_four_submit_btn = execute_with_retry(
         retries, get_el_by_attribute_else_quit, "chooseSlotSubmit", "4.70", By.NAME, driver)
 
-    execute_with_retry(retries, verify_submit_btn_el_else_quit, step_six_submit_btn, "4.71", driver)
+    execute_with_retry(retries, verify_submit_btn_el_else_quit, step_four_submit_btn, "4.71", driver)
 
     # time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_six_submit_btn, "4.72", driver)
+    execute_with_retry(retries, click_el_else_quit, "Submit Btn", step_four_submit_btn, "4.72", driver)
 
     on_modal_screen = execute_with_retry(
         retries, get_el_by_xpath_else_quit,
@@ -174,12 +174,12 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
 
     # Wait briefly on modal screen to try and avoid being kicked off (unneeded?)
     # time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
-    step_five_timeslot_modal_btn = execute_with_retry(
+    step_four_timeslot_modal_btn = execute_with_retry(
         retries, get_el_by_xpath_else_quit, "Time Continue Btn", "4.81",
         "//div[@class='underlay-wrapper']/div/section/div/div[@class='dialog-wrapper-inner']/div/button", driver)
 
     execute_with_retry(
-        retries, click_el_else_quit, "Time Continue Btn", step_five_timeslot_modal_btn, "4.82", driver)
+        retries, click_el_else_quit, "Time Continue Btn", step_four_timeslot_modal_btn, "4.82", driver)
 
     # Step 5 Page - wait for user to do the rest
     set_captcha_codes("5.00", "5.01", "5.02", "5.03")

@@ -1,0 +1,1 @@
+python %~dp0..\AvailabilityTrackingBot\centre_rebook_bot.py rebook\default_low_delay.json

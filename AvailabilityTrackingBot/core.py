@@ -26,6 +26,9 @@ logger.root.setLevel(logging.NOTSET)
 path = working_dir + "/logs"
 if not os.path.exists(path):
     os.makedirs(path)
+screenshots_path = working_dir + "/screenshots"
+if not os.path.exists(screenshots_path):
+    os.makedirs(screenshots_path)
 file_handler = RotatingFileHandler(path + "/" + file_time + "-debug.log", maxBytes=1000000, backupCount=10)
 file_handler.namer = namer
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
