@@ -95,7 +95,7 @@ def pause_if_captcha_page_watcher(browser):
             return
         time.sleep(1)
         logger.debug(captcha_code_1 + " - Checking if captcha page...")
-        if is_el_found_by_xpath("Captcha iframe", captcha_code_1, "//iframe[@id='main-iframe']", browser):
+        if is_el_found_by_xpath("Captcha iframe", captcha_code_1, "//iframe[@id='main-iframe']", browser, 1):
             with thread_paused(main_thread):
                 logger.debug(captcha_code_2 + " - Pausing main thread...")
                 logger.debug(captcha_code_2 + " - On captcha page. Waiting to leave this page to continue execution...")
@@ -210,6 +210,11 @@ def sleep_while_browser_alive(code, browser):
         except Exception as exc:
             log_err(exc, code + "a", "Browser is no longer alive")
             continue_app = False
+
+
+def wait_for_search_cooldown(code):
+    logger.debug(code + " - Restarting app after an interval...")
+    time.sleep(1800)
 
 
 def handle_err_and_quit(error, code, message, browser):

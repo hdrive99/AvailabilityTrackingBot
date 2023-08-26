@@ -1,5 +1,6 @@
 from core import *
 from selenium.webdriver.common.by import By
+from seleniumbase import DriverContext
 import winsound
 import undetected_chromedriver as uc
 import time
@@ -16,7 +17,7 @@ if is_incognito:
 # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
 #                     "Chrome/111.0.0.0 Safari/537.36")
 
-with Fragile(Chrome(options=options, version_main=113)) as driver:
+with Fragile(DriverContext(uc=True, incognito=is_incognito)) as driver:
     execute_with_retry(retries, try_get_url, target_url, "0.00", driver)
 
     if should_pause_on_start:

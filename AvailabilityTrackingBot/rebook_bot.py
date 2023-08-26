@@ -1,5 +1,6 @@
 from core import *
 from selenium.webdriver.common.by import By
+from seleniumbase import DriverContext
 import winsound
 import undetected_chromedriver as uc
 import time
@@ -17,7 +18,9 @@ if is_incognito:
 # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
 #                     "Chrome/111.0.0.0 Safari/537.36")
 
-with Fragile(Chrome(options=options, version_main=113)) as driver:
+with Fragile(DriverContext(uc=True, incognito=is_incognito, agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                                                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                                                  "Chrome/116.0.0.0 Safari/537.36")) as driver:
     execute_with_retry(retries, try_get_url, target_url, "0.00", driver)
 
     if should_pause_on_start:
@@ -127,9 +130,9 @@ with Fragile(Chrome(options=options, version_main=113)) as driver:
                 "4.33", "//div[@class='underlay' and @style='display: block;']", driver):
             logger.error("444" + " - " + "On Search Limit Reached Page/Modal, now quitting when browser dies...")
             try_screenshot("4.34", "On Search Limit Reached Page/Modal", driver)
-            play_song("999X", captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+            # play_song("999X", captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
             # Quit the browser instance if browser dies
-            sleep_while_browser_alive("999", driver)
+            wait_for_search_cooldown("999")
             logger.debug("Killing process...")
             kill_thread = True
             raise Fragile.Break
