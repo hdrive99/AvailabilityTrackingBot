@@ -1,6 +1,7 @@
 from core import *
 from selenium.webdriver.common.by import By
 from seleniumbase import DriverContext
+from datetime import timedelta, date
 import winsound
 import undetected_chromedriver as uc
 import time
@@ -85,6 +86,8 @@ with Fragile(DriverContext(uc=True, incognito=is_incognito)) as driver:
     execute_with_retry(retries, click_el_else_quit, "Test Date Input", step_three_date_form, "3.21", driver)
 
     time.sleep(get_random_delay_or_median(form_delay_range_1, form_delay_range_2))
+    if use_days_after_today:
+        test_date = (date.today() + timedelta(days=no_days_after_today)).strftime("%d/%m/%Y")
     execute_with_retry(
         retries, fill_text_input_else_quit, "Test Date Input", step_three_date_form, test_date, "3.22", driver)
 
@@ -164,6 +167,20 @@ with Fragile(DriverContext(uc=True, incognito=is_incognito)) as driver:
                 else:
                     logger.debug("4.63 - Did not find an available booking at " + i + ".")
                     pass
+
+                if is_el_found_by_xpath("Search Limit Reached Page", "4.76", "//*[@id='main']/header/h1",
+                                        driver) or is_el_found_by_xpath(
+                    "Modal Window Visible", "4.77",
+                    "//div[@class='underlay' and @style='display: block;']", driver):
+                    logger.error(
+                        "444" + " - " + "On Search Limit Reached Page/Modal, now quitting when browser dies...")
+                    try_screenshot("4.78", "On Search Limit Reached Page/Modal", driver)
+                    #play_song("999X", captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
+                    # Quit the browser instance if browser dies
+                    wait_for_search_cooldown("999", driver)
+                    logger.debug("Killing process...")
+                    kill_thread = True
+                    raise Fragile.Break
         if keep_searching_centres:
             logger.debug("4.64 - The current URL is: " + driver.current_url + " --- Refreshing the browser...")
             driver.refresh()

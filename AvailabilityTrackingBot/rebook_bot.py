@@ -1,6 +1,7 @@
 from core import *
 from selenium.webdriver.common.by import By
 from seleniumbase import DriverContext
+from datetime import timedelta, date
 import winsound
 import undetected_chromedriver as uc
 import time
@@ -114,6 +115,8 @@ with Fragile(DriverContext(uc=True, incognito=is_incognito, agent="Mozilla/5.0 (
                 retries, get_el_by_xpath_else_quit,
                 "Calendar Btn", "4.21", "//td[@class='BookingCalendar-date--bookable ']/div/a", driver)
 
+            if use_days_after_today:
+                earliest_desired_rebook_date = (date.today() + timedelta(days=no_days_after_today)).strftime("%Y-%m-%d")
             if verify_attribute_href_date_is_earlier(
                     current_test_date, earliest_desired_rebook_date, step_four_calendar_btn, "4.30", driver):
                 logger.debug("4.31a - Found an earlier date in specified parameters!!!")
@@ -132,7 +135,7 @@ with Fragile(DriverContext(uc=True, incognito=is_incognito, agent="Mozilla/5.0 (
             try_screenshot("4.34", "On Search Limit Reached Page/Modal", driver)
             # play_song("999X", captcha_sound_loop, winsound.SND_ASYNC + winsound.SND_LOOP)
             # Quit the browser instance if browser dies
-            wait_for_search_cooldown("999")
+            wait_for_search_cooldown("999", driver)
             logger.debug("Killing process...")
             kill_thread = True
             raise Fragile.Break

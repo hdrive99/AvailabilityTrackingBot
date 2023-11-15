@@ -212,9 +212,17 @@ def sleep_while_browser_alive(code, browser):
             continue_app = False
 
 
-def wait_for_search_cooldown(code):
+def wait_for_search_cooldown(code, browser):
     logger.debug(code + " - Restarting app after an interval...")
-    time.sleep(1800)
+    wait_timer = 2400
+    while wait_timer > 0:
+        try:
+            _ = browser.window_handles
+            time.sleep(1)
+            wait_timer -= 1
+        except Exception as exc:
+            log_err(exc, code + "a", "Browser is no longer alive")
+            wait_timer = 0
 
 
 def handle_err_and_quit(error, code, message, browser):
